@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>HU Research - File Selector</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            max-width: 900px;
+            width: 100%;
+            overflow: hidden;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 40px 30px;
+            text-align: center;
+        }
+
+        .header h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            font-size: 1.1em;
+            opacity: 0.9;
+        }
+
+        .content {
+            padding: 30px;
+        }
+
+        .file-selector {
+            margin-bottom: 30px;
+        }
+
+        .file-selector label {
+            display: block;
+            font-size: 1.1em;
+            font-weight: 600;
+            margin-bottom: 12px;
+            color: #333;
+        }
+
+        .file-selector select {
+            width: 100%;
+            padding: 12px 15px;
+            font-size: 1em;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            background-color: white;
+            cursor: pointer;
+            transition: border-color 0.3s;
+        }
+
+        .file-selector select:hover {
+            border-color: #667eea;
+        }
+
+        .file-selector select:focus {
+            outline: none;
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .file-display {
+            background: #f8f9fa;
+            border: 2px solid #ddd;
+            border-radius: 6px;
+            padding: 20px;
+            min-height: 400px;
+            max-height: 600px;
+            overflow-y: auto;
+            display: none;
+        }
+
+        .file-display.active {
+            display: block;
+        }
+
+        .file-display iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+            border-radius: 4px;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #666;
+        }
+
+        .loading::after {
+            content: '';
+            animation: dots 1.5s infinite;
+        }
+
+        @keyframes dots {
+            0%, 20% { content: '.'; }
+            40% { content: '..'; }
+            60%, 100% { content: '...'; }
+        }
+
+        .error {
+            background: #fee;
+            color: #c33;
+            padding: 15px;
+            border-radius: 6px;
+            border-left: 4px solid #c33;
+            display: none;
+        }
+
+        .error.active {
+            display: block;
+        }
+
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: #f0f4ff;
+            padding: 15px;
+            border-radius: 6px;
+            text-align: center;
+            border-left: 4px solid #667eea;
+        }
+
+        .stat-card h3 {
+            font-size: 2em;
+            color: #667eea;
+            margin-bottom: 5px;
+        }
+
+        .stat-card p {
+            color: #666;
+            font-size: 0.95em;
+        }
+
+        .button-group {
+            display: flex;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        button {
+            padding: 10px 20px;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 1em;
+            transition: background 0.3s;
+        }
+
+        button:hover {
+            background: #764ba2;
+        }
+
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+
+        .footer {
+            background: #f8f9fa;
+            padding: 20px 30px;
+            border-top: 1px solid #ddd;
+            font-size: 0.9em;
+            color: #666;
+        }
+
+        @media (max-width: 600px) {
+            .header h1 {
+                font-size: 1.8em;
+            }
+
+            .content {
+                padding: 20px;
+            }
+
+            .stats {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 HU Research</h1>
+            <p>File Viewer & Selection</p>
+        </div>
+
+        <div class="content">
+            <div class="stats">
+                <div class="stat-card">
+                    <h3 id="fileCount">0</h3>
+                    <p>Available Files</p>
+                </div>
+                <div class="stat-card">
+                    <h3 id="selectedFile">-</h3>
+                    <p>Currently Selected</p>
+                </div>
+            </div>
+
+            <div class="error" id="error"></div>
+
+            <div class="file-selector">
+                <label for="fileSelect">Select a File:</label>
+                <select id="fileSelect">
+                    <option value="">Loading files...</option>
+                </select>
+            </div>
+
+            <div class="button-group">
+                <button id="openGithub">Open on GitHub</button>
+                <button id="refreshList">Refresh List</button>
+            </div>
+
+            <div class="file-display" id="fileDisplay">
+                <div class="loading" id="loading">Loading file</div>
+                <iframe id="fileFrame" src=""></iframe>
+            </div>
+        </div>
+
+        <div class="footer">
+            <p>Repository: <strong>joconnor3433/HU_research</strong> | Last updated: <span id="lastUpdate">-</span></p>
+        </div>
+    </div>
+
+    <script>
+        const GITHUB_API = 'https://api.github.com/repos/joconnor3433/HU_research';
+        const REPO_URL = 'https://github.com/joconnor3433/HU_research';
+        const RAW_GITHUB = 'https://raw.githubusercontent.com/joconnor3433/HU_research/main';
+
+        const fileSelect = document.getElementById('fileSelect');
+        const fileDisplay = document.getElementById('fileDisplay');
+        const loading = document.getElementById('loading');
+        const error = document.getElementById('error');
+        const fileFrame = document.getElementById('fileFrame');
+        const fileCount = document.getElementById('fileCount');
+        const selectedFile = document.getElementById('selectedFile');
+        const lastUpdate = document.getElementById('lastUpdate');
+        const openGithub = document.getElementById('openGithub');
+        const refreshList = document.getElementById('refreshList');
+
+        let files = [];
+
+        // Fetch files from repository
+        async function fetchFiles() {
+            try {
+                showError('');
+                fileSelect.innerHTML = '<option value="">Loading files...</option>';
+
+                const response = await fetch(`${GITHUB_API}/contents`);
+                
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch files: ${response.statusText}`);
+                }
+
+                const contents = await response.json();
+                
+                // Filter for files (not directories)
+                files = Array.isArray(contents) 
+                    ? contents.filter(item => item.type === 'file')
+                    : [contents].filter(item => item.type === 'file');
+
+                if (files.length === 0) {
+                    showError('No files found in the repository.');
+                    fileSelect.innerHTML = '<option value="">No files available</option>';
+                    return;
+                }
+
+                // Populate select dropdown
+                fileSelect.innerHTML = '<option value="">Select a file...</option>';
+                files.forEach(file => {
+                    const option = document.createElement('option');
+                    option.value = file.path;
+                    option.textContent = `📄 ${file.name} (${formatFileSize(file.size)})`;
+                    fileSelect.appendChild(option);
+                });
+
+                fileCount.textContent = files.length;
+                lastUpdate.textContent = new Date().toLocaleTimeString();
+            } catch (err) {
+                showError(`Error loading files: ${err.message}`);
+                console.error(err);
+            }
+        }
+
+        // Handle file selection
+        fileSelect.addEventListener('change', async (e) => {
+            const filePath = e.target.value;
+            
+            if (!filePath) {
+                fileDisplay.classList.remove('active');
+                selectedFile.textContent = '-';
+                return;
+            }
+
+            const selectedFileName = files.find(f => f.path === filePath)?.name || 'Unknown';
+            selectedFile.textContent = selectedFileName;
+
+            // Show loading and display area
+            fileDisplay.classList.add('active');
+            loading.style.display = 'block';
+            fileFrame.style.display = 'none';
+
+            try {
+                showError('');
+                
+                // Load file via iframe for HTML files
+                if (filePath.endsWith('.html')) {
+                    fileFrame.src = `${RAW_GITHUB}/${filePath}`;
+                    fileFrame.onload = () => {
+                        loading.style.display = 'none';
+                        fileFrame.style.display = 'block';
+                    };
+                } else {
+                    // For other files, load as text
+                    const response = await fetch(`${RAW_GITHUB}/${filePath}`);
+                    const content = await response.text();
+                    
+                    fileFrame.style.display = 'block';
+                    loading.style.display = 'none';
+                    
+                    // Display content in iframe using data URL
+                    const htmlContent = `
+                        <html><body style="margin: 0; padding: 20px; font-family: monospace; white-space: pre-wrap; word-wrap: break-word; background: #f5f5f5;">
+                            <pre style="background: white; padding: 15px; border-radius: 4px; border: 1px solid #ddd;">${escapeHtml(content)}</pre>
+                        </body></html>
+                    `;
+                    fileFrame.src = 'data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent);
+                }
+            } catch (err) {
+                loading.style.display = 'none';
+                showError(`Error loading file: ${err.message}`);
+            }
+        });
+
+        // Open on GitHub
+        openGithub.addEventListener('click', () => {
+            const filePath = fileSelect.value;
+            if (filePath) {
+                window.open(`${REPO_URL}/blob/main/${filePath}`, '_blank');
+            }
+        });
+
+        // Refresh file list
+        refreshList.addEventListener('click', fetchFiles);
+
+        // Utility functions
+        function formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i];
+        }
+
+        function showError(message) {
+            error.classList.toggle('active', !!message);
+            error.textContent = message;
+        }
+
+        function escapeHtml(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
+        // Initial load
+        fetchFiles();
+    </script>
+</body>
+</html>
